@@ -401,8 +401,9 @@ Goals:
 
 ### Context
 - Project root: `/Users/suttikeat/Bank/thai-lottery-lab/`
+- Branch: `m5/backtest-engine` (forked from `main` at M4 completion)
 - Node v25.9.0 | Python 3.14.4 | uv 0.11.7 | pnpm 10.33.3
-- **M0–M4 complete.** Start with M5 (Backtest engine).
+- **M0–M4 complete on `main`.** Start M5 on `m5/backtest-engine` branch.
 
 ### Sanity check before coding
 ```bash
