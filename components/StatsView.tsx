@@ -160,7 +160,7 @@ export function StatsView({ strings }: { strings: Strings }) {
           orient: "horizontal",
           left: "center",
           bottom: 0,
-          inRange: { color: ["#e0f2fe", "#0369a1"] },
+          inRange: { color: ["#1d4ed8", "#eff6ff", "#dc2626"] },
         },
         grid: { top: 10, bottom: 60, left: 30, right: 10 },
         xAxis: { type: "category", data: Array.from({ length: 10 }, (_, i) => String(i)), splitArea: { show: true } },

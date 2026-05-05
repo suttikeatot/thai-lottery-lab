@@ -280,10 +280,12 @@ For every target draw date `T`, a strategy may **only** see rows where `draw_dat
   - `prize_sub_3digits` -> `three_back`
 - Python-style list strings such as `['290', '742']` are normalized into canonical comma-separated values during import.
 - `README.md` and `CHANGELOG.md` were updated to reflect this compatibility and the current frontend test coverage.
+- `components/StatsView.tsx` heatmap palette was switched from blue-only to a diverging blue-white-red scale so hot and cold cells are visually distinct.
 - Commit history for this stage:
   - `fed6047` — Complete backtest lab through M7 polish
   - `9f6ba57` — Add frontend automated tests for key flows
   - `3b1a953` — Support historical lotto import schema
+  - `45a4fb2` — Update project handoff for real-data bugfix pass
 
 ---
 
@@ -364,6 +366,7 @@ Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
 - `lib/import/validate.test.ts` — canonical + `lotto.csv` schema normalization tests.
 - `vitest.config.ts` — includes `lib/**/*.test.ts`.
 - `lib/import/validate.ts` — now normalizes the historical `lotto.csv` schema and list-style 3-digit fields.
+- `components/StatsView.tsx` — heatmap diverging palette for clearer hot/cold contrast.
 
 ---
 
@@ -482,6 +485,7 @@ Goals:
   - After import, `draw` count in SQLite is `431`.
   - DB date range is `2006-12-30` to `2024-12-16`.
   - `/api/stats?window=20y&n=50` returned valid output on 431 draws.
+  - Heatmap now uses a diverging palette instead of blue-only scaling.
   - `/api/backtest/run` returned a valid persisted run on the real dataset.
   - The suspicious absence of number `13` is data-real: both `two_upper='13'` and `two_lower='13'` counts are `0` in the imported dataset, so this is not an importer bug.
 - **Read `node_modules/next/dist/docs/` before any Next-specific work.**
