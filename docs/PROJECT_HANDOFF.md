@@ -2,7 +2,7 @@
 
 > **Purpose:** Durable project context for new coding sessions. Do not rely on chat history.  
 > **Last updated:** 2026-05-06  
-> **Status:** **M7 complete.** Copy/disclaimer review, SQLite export, and documentation updates have been added. Next work is bug fixing, broader automated tests, or new product scope.
+> **Status:** **Post-M7 bug-fix mode.** M0-M7 are complete, frontend automated tests exist, and importer compatibility for the historical `lotto.csv` schema has been added. Next work is debugging and product polish on the larger real dataset.
 
 ---
 
@@ -58,7 +58,7 @@ Help hobbyists and data-curious users:
 | Python tooling | **uv 0.11.7**, Python **3.14.4** | uv project at `worker/`. requires-python = ">=3.12". |
 | Node tooling | **pnpm 10.33.3** (installed via `npm i -g pnpm` — corepack not present) | |
 | Validation | Zod (TS) + Pydantic (Py) — added in later milestones | |
-| Testing | pytest (worker, present), Vitest + Playwright (deferred) | |
+| Testing | pytest (worker, present), Vitest (web/import/export present), Playwright (deferred) | |
 | Node version | v25.9.0 | |
 
 ---
@@ -265,11 +265,36 @@ For every target draw date `T`, a strategy may **only** see rows where `draw_dat
 - `CHANGELOG.md` was added with a concise summary of M5–M7 work.
 - Runtime verified under `pnpm dev`: `GET /api/export/db` returns a downloadable SQLite file.
 
+### Post-M7 — Frontend Tests + Historical Import Compatibility ✅
+- Vitest coverage was added for:
+  - `components/ImportForm.test.tsx`
+  - `components/BacktestLab.test.tsx`
+  - `app/api/export/db/route.test.ts`
+  - `lib/import/validate.test.ts`
+- `vitest.config.ts` now includes `lib/**/*.test.ts`.
+- `lib/import/validate.ts` now accepts the historical `lotto.csv` field names:
+  - `date` -> `draw_date`
+  - `prize_1st` -> `first_prize`
+  - `prize_2digits` -> `two_lower`
+  - `prize_pre_3digit` -> `three_front`
+  - `prize_sub_3digits` -> `three_back`
+- Python-style list strings such as `['290', '742']` are normalized into canonical comma-separated values during import.
+- `README.md` and `CHANGELOG.md` were updated to reflect this compatibility and the current frontend test coverage.
+- Commit history for this stage:
+  - `fed6047` — Complete backtest lab through M7 polish
+  - `9f6ba57` — Add frontend automated tests for key flows
+  - `3b1a953` — Support historical lotto import schema
+
 ---
 
 ## 14. Current Implementation Status
 
-**M7 complete.** Export, copy review, and documentation are now aligned with the working tree. Remaining work is optional polish or broader test coverage rather than a defined milestone.
+**Post-M7 bug-fix mode.** Core product scope is complete. The branch now has:
+- export + copy polish
+- Vitest coverage for import/backtest/export/importer normalization
+- compatibility with the user's larger historical `lotto.csv` dataset
+
+Immediate remaining work is to use the larger dataset to find real UX/statistics/backtest bugs rather than to add new milestone features.
 
 ---
 
@@ -332,6 +357,14 @@ Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
 - `CHANGELOG.md` — milestone summary.
 - `components/ImportForm.tsx` — export/download surface in the import page.
 
+**Added after M7:**
+- `components/ImportForm.test.tsx` — import UI test coverage.
+- `components/BacktestLab.test.tsx` — backtest UI test coverage.
+- `app/api/export/db/route.test.ts` — export route test coverage.
+- `lib/import/validate.test.ts` — canonical + `lotto.csv` schema normalization tests.
+- `vitest.config.ts` — includes `lib/**/*.test.ts`.
+- `lib/import/validate.ts` — now normalizes the historical `lotto.csv` schema and list-style 3-digit fields.
+
 ---
 
 ## 16. Important Design Decisions and Reasons
@@ -357,9 +390,10 @@ Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
 - **next-intl was NOT used** in M0 (despite the original plan). The hand-rolled i18n is intentionally simpler. Switch to next-intl only if a feature requires it (e.g. ICU plural rules at scale).
 - **shadcn/ui not installed**. Add it when the first non-trivial component needs it.
 - Historical GLO data quality depends entirely on the user's seed CSV. The app validates but cannot fix typos in source data.
-- **No automated tests for Next.js side** — export and UI runtime were smoke-tested manually, but there is still no dedicated frontend test harness.
-- **No pytest for stats/compute.py** — worker coverage now includes health, leakage guard, and backtest engine, but stats compute tests are still planned for M7.
-- **Only 10 seed rows** — all charts and statistics look sparse/extreme with prototype data. Import real GLO data to see meaningful output.
+- **No Playwright/e2e yet** — frontend coverage exists in Vitest, but browser-level end-to-end coverage is still absent.
+- **No pytest for stats/compute.py** — worker coverage includes health, leakage guard, and backtest engine, but stats compute tests are still thin.
+- **Local real dataset is not committed** — on this machine there is an untracked file at `data/seed/lotto.csv` (~528 KB). It was intentionally left local-only; do not commit it unless the user explicitly asks.
+- **Real dataset starts earlier than the user's verbal summary** — after import, DB date range is `2006-12-30` to `2024-12-16`, not strictly 2007–2024.
 
 ---
 
@@ -418,18 +452,23 @@ Bugs found during manual UI testing (2026-05-06). All fixed in the same session.
 - [x] **M6:** Backtest UI (form, run/progress, results page with metrics and lift chart) — done.
 - [x] **M7:** Thai translation review, disclaimers, DB export, README — done.
 
+Current post-M7 work:
+- [x] Add frontend automated tests for import/backtest/export.
+- [x] Add importer compatibility for the historical `lotto.csv` schema.
+- [ ] Continue bug-fix mode using the larger real dataset.
+
 ---
 
 ## 19. Next Recommended Milestone
 
-**Post-M7 Priorities**
+**Real-Dataset Bug-Fix Pass**
 
 Estimated effort: variable.
 
 Goals:
-- Add frontend automated tests for import, stats, backtest, and export flows.
-- Fix bugs found from larger real-data imports and longer browser sessions.
-- Decide whether to extend analytics scope or keep the app frozen as an MVP.
+- Use the larger historical dataset to find UI, statistics, import, and backtest edge-case bugs.
+- Add browser-level tests only if a concrete regression needs them.
+- Keep scope disciplined; this branch is already feature-complete for v1.
 
 ### Important reminders for next agent
 
@@ -437,6 +476,14 @@ Goals:
 - **Never name a state variable `window`** — it shadows the browser global. See BUG-001 in §17b.
 - **If "Loading…" hangs and/or nav freezes after a few page switches, check if the worker is suspended** (`ps -p <PID> -o stat` → `T`). See BUG-004.
 - **Backtest audit data** — the worker returns `as_of`, `history_count`, and `history_hash` per prediction. Current Prisma schema does not have dedicated columns for these fields, so the Next API persists them inside `BacktestRun.metrics_json.audit`.
+- **Real dataset observations already checked**:
+  - Importing local `data/seed/lotto.csv` via `POST /api/imports` succeeded with `rowCount=428`, `okCount=428`, `errorCount=0`, `insertedCount=421`.
+  - Re-import is idempotent and returned `insertedCount=0`.
+  - After import, `draw` count in SQLite is `431`.
+  - DB date range is `2006-12-30` to `2024-12-16`.
+  - `/api/stats?window=20y&n=50` returned valid output on 431 draws.
+  - `/api/backtest/run` returned a valid persisted run on the real dataset.
+  - The suspicious absence of number `13` is data-real: both `two_upper='13'` and `two_lower='13'` counts are `0` in the imported dataset, so this is not an importer bug.
 - **Read `node_modules/next/dist/docs/` before any Next-specific work.**
 - **Prisma 7** datasource URL is in `prisma.config.ts`, not the schema.
 - **i18n keys** — every new visible string belongs in both `messages/en.json` and `messages/th.json`.
@@ -450,22 +497,40 @@ Goals:
 - Project root: `/Users/suttikeat/Bank/thai-lottery-lab/`
 - Branch: `m5/backtest-engine`
 - Node v25.9.0 | Python 3.14.4 | uv 0.11.7 | pnpm 10.33.3
-- **M0–M7 complete.** Continue on `m5/backtest-engine` for bug fixes or open a new branch for new scope.
+- HEAD at handoff time: `3b1a953` (`Support historical lotto import schema`)
+- **M0–M7 complete.** Continue on `m5/backtest-engine` for bug fixes on real data.
+- `origin/m5/backtest-engine` already includes `3b1a953`.
 
 ### Sanity check before coding
 ```bash
 cd /Users/suttikeat/Bank/thai-lottery-lab
 pnpm install              # idempotent
-pnpm exec next build      # must succeed — currently 11 routes including /api/backtest/run
+pnpm build                # must succeed
+pnpm test:web             # currently 10 tests across 4 files
 pnpm test:worker          # must show 4 passed
 pnpm dev                  # http://localhost:3000 + worker on :8001
 ```
 
-### Post-M7 Suggestions
+### Real-dataset workflow already validated
 
-1. Add Vitest or Playwright coverage for the export path and the main interactive pages.
-2. Re-run the app with a larger real historical dataset and inspect statistical outputs for edge-case bugs.
-3. If the product scope stays local-first, keep the SQLite export path and avoid adding cloud/auth complexity.
+1. Local dataset path on this machine: `data/seed/lotto.csv`
+2. This file is currently **untracked** in git. Keep it local unless the user asks to commit it.
+3. Import command that was already validated:
+   ```bash
+   curl -s -X POST http://localhost:3000/api/imports \
+     -F 'file=@/Users/suttikeat/Bank/thai-lottery-lab/data/seed/lotto.csv'
+   ```
+4. Expected import result on the current local DB:
+   - first import after seed DB: `insertedCount=421`
+   - second import: `insertedCount=0`
+5. Current SQLite check:
+   ```bash
+   sqlite3 data/app.db 'SELECT COUNT(*), MIN(draw_date), MAX(draw_date) FROM draw;'
+   ```
+   Expected result:
+   ```text
+   431|2006-12-30T00:00:00.000+00:00|2024-12-16T00:00:00.000+00:00
+   ```
 
 ### Important reminders for the next agent
 
@@ -473,4 +538,5 @@ pnpm dev                  # http://localhost:3000 + worker on :8001
 - **Prisma 7** datasource URL is in `prisma.config.ts`, not the schema. Don't try to add `url` back to `schema.prisma`.
 - **Default to no comments** in code unless the *why* is non-obvious.
 - **i18n keys** — every new visible string belongs in both `messages/en.json` and `messages/th.json`. Reach for the `t(dict, "key")` helper in `lib/i18n.ts`.
+- If `git status` shows only `?? data/seed/lotto.csv`, that is expected from this handoff.
 - After future work, update §13–§19 of this handoff before stopping.
