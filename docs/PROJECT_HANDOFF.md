@@ -373,7 +373,7 @@ Bugs found during manual UI testing (2026-05-06). All fixed in the same session.
 
 ## 19. Next Recommended Milestone
 
-**M5 — Backtest Engine**
+**M5 — Backtest Engine** (work on branch `m5/backtest-engine`)
 
 Estimated effort: 3–4 hours.
 
@@ -401,8 +401,11 @@ Goals:
 
 ### Context
 - Project root: `/Users/suttikeat/Bank/thai-lottery-lab/`
+- **Current branch:** `main` (M0–M4 complete, stable baseline)
+- **Next work branch:** `m5/backtest-engine` (forked from `main`, ready for M5)
 - Node v25.9.0 | Python 3.14.4 | uv 0.11.7 | pnpm 10.33.3
-- **M0–M4 complete.** Start with M5 (Backtest engine).
+
+**For M5 work:** Start on `m5/backtest-engine` branch. See step-by-step instructions below.
 
 ### Sanity check before coding
 ```bash
