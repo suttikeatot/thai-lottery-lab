@@ -2,7 +2,7 @@
 
 > **Purpose:** Durable project context for new coding sessions. Do not rely on chat history.  
 > **Last updated:** 2026-05-05  
-> **Status:** Pre-implementation (M0 not yet started)
+> **Status:** **M0 complete.** Skeleton runs end-to-end. Next milestone: M1 (Data Import).
 
 ---
 
@@ -49,18 +49,17 @@ Help hobbyists and data-curious users:
 
 | Layer | Choice | Reason |
 |---|---|---|
-| Frontend + API | Next.js 15 (App Router) + TypeScript | Full-stack TS, App Router patterns |
-| Styling | Tailwind + shadcn/ui | Rapid UI with accessible primitives |
-| Charts | Recharts + ECharts (heatmap) | Recharts simple; ECharts for 10×10 grid |
-| i18n | next-intl | Best-in-class App Router integration |
-| DB | SQLite via Prisma | Local-first, zero-ops, single file |
-| Python worker | FastAPI + pandas + numpy + scipy | Heavy stats & backtesting; localhost HTTP |
-| Python tooling | uv (v0.11.7 confirmed on machine) | Fast dependency management |
-| Node tooling | pnpm | **Not yet installed on this machine** — must install before M0 |
-| Validation | Zod (TS) + Pydantic (Py) | Shared schema discipline |
-| Testing | Vitest + pytest + Playwright (1 E2E) | |
-| Node version | v25.9.0 (confirmed on machine) | |
-| Python version | 3.14.4 (confirmed on machine) | |
+| Frontend + API | **Next.js 16.2.4** (App Router) + TypeScript 5 + React 19.2 | Full-stack TS. **Note: Next 16 has breaking changes** (e.g. `proxy.ts` replaces `middleware.ts`, `LayoutProps<"/[lang]">` and `PageProps` are global). Read `node_modules/next/dist/docs/` before writing Next.js code. |
+| Styling | Tailwind 4 (no shadcn yet) | Rapid UI; shadcn deferred to a later milestone |
+| Charts | Recharts + ECharts (heatmap) | Planned for M3 |
+| i18n | **Hand-rolled** with `[lang]` route segment + `lib/i18n.ts` | next-intl deferred. Self-rolled is lighter and avoids Next-16-compat risk. Dictionaries at `messages/{en,th}.json`. |
+| DB | SQLite via **Prisma 7.8** + **`@prisma/adapter-better-sqlite3`** | Prisma 7 changed config: `url` lives in `prisma.config.ts`, not the schema. Adapter required at runtime. |
+| Python worker | FastAPI + pandas + numpy + scipy | Heavy stats & backtesting; localhost:8001 HTTP |
+| Python tooling | **uv 0.11.7**, Python **3.14.4** | uv project at `worker/`. requires-python = ">=3.12". |
+| Node tooling | **pnpm 10.33.3** (installed via `npm i -g pnpm` — corepack not present) | |
+| Validation | Zod (TS) + Pydantic (Py) — added in later milestones | |
+| Testing | pytest (worker, present), Vitest + Playwright (deferred) | |
+| Node version | v25.9.0 | |
 
 ---
 
@@ -221,25 +220,47 @@ For every target draw date `T`, a strategy may **only** see rows where `draw_dat
 
 ## 13. Completed Milestones
 
-**None.** Project has not yet been initialized.
+### M0 — Skeleton ✅
+- Next.js 16.2.4 + TypeScript + Tailwind 4 scaffolded.
+- Prisma 7.8 with `Draw`, `ImportBatch`, `BacktestRun`, `BacktestPrediction` models. Initial migration `20260505063539_init` applied. SQLite at `data/app.db` (gitignored). Adapter wired in `lib/prisma.ts`.
+- Hand-rolled i18n: `app/[lang]/`, `messages/{en,th}.json`, `lib/i18n.ts`, `components/LangSwitcher.tsx`. Default-locale redirect via root `proxy.ts` (Next-16 convention).
+- FastAPI worker at `worker/` (uv project) with `GET /health` and `app/backtest/leakage_guard.py` stub. pytest suite passes (2/2): health smoke + leakage guard NotImplemented.
+- Next.js `app/api/health/route.ts` proxies the worker. `components/HealthBadge.tsx` polls it from the home page.
+- `pnpm dev` runs both servers concurrently. Smoke-tested: `/`, `/en`, `/th`, `/api/health`, worker `:8001/health` all return 200.
+- `pnpm build` produces a clean production build with three routes.
 
 ---
 
 ## 14. Current Implementation Status
 
-Pre-implementation. Planning phase complete. No code written yet.
-
-- Project directory created: `/Users/suttikeat/Bank/thai-lottery-lab/`
-- This handoff document created.
-- No `package.json`, no `pyproject.toml`, no SQLite file.
+**M0 complete.** Skeleton runs end-to-end. Ready to start M1 (Data Import).
 
 ---
 
 ## 15. Files Created or Modified So Far
 
-```
-/Users/suttikeat/Bank/thai-lottery-lab/docs/PROJECT_HANDOFF.md   ← this file (NEW)
-```
+Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
+
+- `package.json` — scripts: `dev` (concurrently web+worker), `dev:web`, `dev:worker`, `build`, `start`, `lint`, `test:worker`. Added `pnpm.onlyBuiltDependencies` for prisma + better-sqlite3.
+- `prisma.config.ts` — Prisma 7 config (datasource URL, migrations path).
+- `prisma/schema.prisma` — 4 models.
+- `prisma/migrations/20260505063539_init/migration.sql` — initial migration.
+- `proxy.ts` — locale redirect.
+- `.env` — `DATABASE_URL`.
+- `.gitignore` — adds `/data/*.db`, python caches, `.venv`.
+- `lib/prisma.ts` — Prisma client singleton with adapter.
+- `lib/i18n.ts` — locale list, dictionary loader, `t()` helper.
+- `messages/{en,th}.json` — string catalogs.
+- `app/[lang]/layout.tsx` — root layout, header w/ lang switcher, footer w/ disclaimer.
+- `app/[lang]/page.tsx` — home page with health badge.
+- `app/api/health/route.ts` — proxies to `http://127.0.0.1:8001/health`.
+- `components/LangSwitcher.tsx`, `components/HealthBadge.tsx`.
+- `worker/pyproject.toml` — fastapi, uvicorn, pandas, numpy, scipy, pydantic + dev: pytest, httpx.
+- `worker/pytest.ini` — `pythonpath = .`.
+- `worker/app/main.py` — FastAPI app with `/health`.
+- `worker/app/backtest/leakage_guard.py` — stub raising NotImplementedError.
+- `worker/tests/test_health.py`, `worker/tests/test_leakage_guard.py`.
+- `docs/PROJECT_HANDOFF.md` — this file.
 
 ---
 
@@ -260,16 +281,18 @@ Pre-implementation. Planning phase complete. No code written yet.
 
 ## 17. Known Issues or Limitations
 
-- **pnpm not installed** on the machine. Must run `npm install -g pnpm` or `corepack enable pnpm` before M0.
-- Node v25.9.0 is very recent (bleeding-edge). If any Next.js 15 dependency fails, downgrade to Node LTS (22.x) via `nvm`.
-- Python 3.14.4 is a pre-release/dev version. If any scipy/pandas build fails, use 3.12 LTS as a fallback via `uv python install 3.12`.
+- **Next.js 16** is newer than typical training data. Always consult `node_modules/next/dist/docs/` (especially for `proxy.ts`, `LayoutProps`, `PageProps`, route conventions) before writing Next-specific code. AGENTS.md in repo root carries the same warning.
+- **Prisma 7** requires `prisma.config.ts` for migrate CLI (`datasource.url` lives there, not in `schema.prisma`). Schema only declares the provider.
+- **better-sqlite3** is a native module; `pnpm` requires it under `pnpm.onlyBuiltDependencies` to compile. If you fully nuke `node_modules`, run `pnpm rebuild better-sqlite3`.
+- **next-intl was NOT used** in M0 (despite the original plan). The hand-rolled i18n is intentionally simpler. Switch to next-intl only if a feature requires it (e.g. ICU plural rules at scale).
+- **shadcn/ui not installed** in M0. Add it during M2/M3 when the first non-trivial component is needed.
 - Historical GLO data quality depends entirely on the user's seed CSV. The app validates but cannot fix typos in source data.
 
 ---
 
 ## 18. Pending Tasks
 
-- [ ] **M0:** Install pnpm, scaffold Next.js app, set up Prisma + SQLite, set up Python worker with uv, wire `pnpm dev` to boot both, stub `leakage_guard.py` with a failing test, i18n stub.
+- [x] **M0:** Skeleton — done.
 - [ ] **M1:** CSV/JSON importer, validation, error report UI, idempotent insert, seed file.
 - [ ] **M2:** Dashboard (summary cards, latest draws table, language toggle).
 - [ ] **M3:** Statistics page (window picker, frequency table, heatmap, deviation chart, chi-square).
@@ -282,9 +305,16 @@ Pre-implementation. Planning phase complete. No code written yet.
 
 ## 19. Next Recommended Milestone
 
-**M0 — Repo Scaffolding**
+**M1 — Data Import**
 
-Estimated effort: 1–2 hours.
+Estimated effort: 2–3 hours.
+
+Goals:
+- Define a documented CSV/JSON schema for GLO results (`draw_date`, `first_prize`, `two_lower`, optional `three_front`, `three_back`).
+- Build an `/[lang]/import` page with a file dropzone, server-side parsing, per-row validation, and an error report.
+- Idempotent insert: skip rows whose `draw_date` already exists; create an `ImportBatch` record per upload.
+- Seed file at `data/seed/glo_results_seed.csv` with at least a few sample rows.
+- Acceptance: importing the seed twice inserts N then 0 rows; malformed rows surface in a UI error report.
 
 ---
 
@@ -292,90 +322,46 @@ Estimated effort: 1–2 hours.
 
 ### Context
 - Project root: `/Users/suttikeat/Bank/thai-lottery-lab/`
-- Node: v25.9.0 | Python: 3.14.4 | uv: 0.11.7
-- pnpm: **NOT installed** — install it first.
-- No code exists yet. Start from scratch.
+- Node v25.9.0 | Python 3.14.4 | uv 0.11.7 | pnpm 10.33.3
+- M0 is complete and committed. Start with M1.
 
-### Step-by-step M0 tasks
-
-**Step 1 — Install pnpm**
-```bash
-corepack enable pnpm
-# OR if corepack is not available:
-npm install -g pnpm
-```
-
-**Step 2 — Scaffold Next.js app**
+### Sanity check before coding
 ```bash
 cd /Users/suttikeat/Bank/thai-lottery-lab
-pnpm create next-app . \
-  --typescript --tailwind --app --no-src-dir \
-  --import-alias "@/*" --no-git
+pnpm install              # idempotent
+pnpm exec next build      # must succeed
+pnpm test:worker          # must show 2 passed
+pnpm dev                  # http://localhost:3000 + worker on :8001
 ```
 
-**Step 3 — Add dependencies**
-```bash
-pnpm add next-intl
-pnpm add -D @types/node
-pnpm dlx shadcn@latest init
-pnpm add @prisma/client
-pnpm add -D prisma
-```
+### M1 — Data Import (step-by-step)
 
-**Step 4 — Set up Prisma**
-- Run `pnpm prisma init --datasource-provider sqlite`
-- Write `prisma/schema.prisma` with the `Draw`, `ImportBatch`, `BacktestRun`, `BacktestPrediction` models (see §8 above).
-- Run `pnpm prisma migrate dev --name init`
-- Add `data/app.db` to `.gitignore`
+1. **Write the canonical CSV schema** in `docs/csv_schema.md`. Columns: `draw_date` (ISO `YYYY-MM-DD`), `first_prize` (6-digit string), `two_lower` (2-digit string), optional `three_front` (`"123,456"`), optional `three_back`.
 
-**Step 5 — Set up next-intl**
-- Create `messages/en.json` and `messages/th.json` with stub keys.
-- Configure `i18n/routing.ts`, `middleware.ts`, `next.config.ts` per next-intl App Router docs.
-- Add a language toggle component to the root layout.
+2. **Add a tiny seed file** at `data/seed/glo_results_seed.csv` with 5–10 hand-entered rows for development. (Real historical data import comes from the user.)
 
-**Step 6 — Set up Python worker**
-```bash
-cd worker
-uv init
-uv add fastapi uvicorn pandas numpy scipy sqlalchemy pydantic
-uv add --dev pytest httpx
-```
-- Create `worker/app/main.py` with FastAPI app and `GET /health` returning `{"status": "ok"}`.
-- Create `worker/app/backtest/leakage_guard.py` with:
-  ```python
-  def get_history(as_of: date) -> pd.DataFrame:
-      raise NotImplementedError  # implemented in M5
-  ```
-- Create `worker/tests/test_leakage_guard.py` with a failing placeholder test.
+3. **Server-side validator** in `lib/import/validate.ts`:
+   - Use Zod for row schema.
+   - Derive `two_upper = first_prize.slice(-2)`; if a `two_upper` column is provided, verify it matches.
+   - Return `{ ok: ParsedRow[], errors: { row: number; reason: string }[] }`.
+   - Reject rows with missing required fields, malformed digits, or unparseable dates.
 
-**Step 7 — Wire concurrently**
-```bash
-pnpm add -D concurrently
-```
-Update `package.json` `dev` script:
-```json
-"dev": "concurrently \"next dev\" \"cd worker && uv run uvicorn app.main:app --port 8001 --reload\""
-```
+4. **Importer** in `lib/import/import.ts`:
+   - Use `prisma.draw.createMany({ data, skipDuplicates: true })` for idempotency.
+   - On success, create an `ImportBatch` row (`row_count`, `ok_count`, `error_count`, `filename`).
 
-**Step 8 — Smoke-test API route**
-- Create `app/api/health/route.ts` that proxies `GET http://localhost:8001/health`.
-- Verify with `curl http://localhost:3000/api/health`.
+5. **API route** `app/api/imports/route.ts` — `POST` accepts multipart form-data, parses CSV (use `papaparse`) or JSON, runs validate → importer, returns `{ batch, errors }`.
 
-**Step 9 — Acceptance check**
-- `pnpm dev` starts both Next.js and Python worker without errors.
-- `curl http://localhost:3000` returns the Next.js UI.
-- `curl http://localhost:8001/health` returns `{"status":"ok"}`.
-- `pnpm prisma migrate dev` succeeds.
-- Language toggle renders in the UI.
-- `cd worker && uv run pytest` runs (1 failing test is expected for leakage_guard).
+6. **UI page** `app/[lang]/import/page.tsx` — file input, on submit POST to `/api/imports`, render a result panel: success count + per-row errors table. Add to `messages/{en,th}.json`.
 
-**Step 10 — Git init and first commit**
-```bash
-cd /Users/suttikeat/Bank/thai-lottery-lab
-git init
-git add -A
-git commit -m "M0: project skeleton — Next.js + Python worker + Prisma + i18n stub"
-git tag v0.0.1-skeleton
-```
+7. **Tests** — small fixture CSV + Vitest (or a Next route test) that imports it twice and asserts inserted=N then 0.
 
-After M0 is green, proceed to **M1 (Data Import)**.
+8. **Update handoff doc** §13 Completed Milestones, §15 Files, §18 Pending, §19 Next Milestone (→ M2 Dashboard).
+
+### Important reminders for the next agent
+
+- **Read `node_modules/next/dist/docs/` before any Next-specific work.** Next 16 has breaking changes — `proxy.ts` not `middleware.ts`; `LayoutProps<"...">` and `PageProps<"...">` are global helpers; routes under `app/[lang]/` need typed `params: Promise<{ lang: string }>`.
+- **Prisma 7** datasource URL is in `prisma.config.ts`, not the schema. Don't try to add `url` back to `schema.prisma`.
+- **Default to no comments** in code unless the *why* is non-obvious.
+- **i18n keys** — every new visible string belongs in both `messages/en.json` and `messages/th.json`. Reach for the `t(dict, "key")` helper in `lib/i18n.ts`.
+- After M1 acceptance, commit with a clear message and update §13–§19 of this handoff before stopping.

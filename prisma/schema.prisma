@@ -1,0 +1,67 @@
+// Thai Lottery Lab — Prisma schema
+// SQLite, single file at ../data/app.db
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// One lottery draw on a specific date.
+model Draw {
+  id          Int      @id @default(autoincrement())
+  drawDate    DateTime @unique @map("draw_date")
+  firstPrize  String   @map("first_prize")  // 6 digits, zero-padded
+  twoUpper    String   @map("two_upper")    // last 2 of first_prize
+  twoLower    String   @map("two_lower")    // official 2-digit bottom prize
+  threeFront  String?  @map("three_front")  // comma-separated, optional
+  threeBack   String?  @map("three_back")   // comma-separated, optional
+  source      String                        // e.g. "csv:filename"
+  importedAt  DateTime @default(now()) @map("imported_at")
+
+  @@index([drawDate])
+  @@map("draw")
+}
+
+model ImportBatch {
+  id          Int      @id @default(autoincrement())
+  filename    String
+  rowCount    Int      @map("row_count")
+  okCount     Int      @map("ok_count")
+  errorCount  Int      @map("error_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("import_batch")
+}
+
+model BacktestRun {
+  id            Int      @id @default(autoincrement())
+  strategyKey   String   @map("strategy_key")
+  paramsJson    String   @map("params_json")
+  windowSpecJson String  @map("window_spec_json")
+  startDate     DateTime @map("start_date")
+  endDate       DateTime @map("end_date")
+  nTargets      Int      @map("n_targets")
+  createdAt     DateTime @default(now()) @map("created_at")
+  metricsJson   String   @map("metrics_json")
+  predictions   BacktestPrediction[]
+
+  @@map("backtest_run")
+}
+
+model BacktestPrediction {
+  id                  Int       @id @default(autoincrement())
+  runId               Int       @map("run_id")
+  targetDrawDate      DateTime  @map("target_draw_date")
+  predictedNumbersJson String   @map("predicted_numbers_json")
+  actualTwoUpper      String    @map("actual_two_upper")
+  actualTwoLower      String    @map("actual_two_lower")
+  hitUpper            Boolean   @map("hit_upper")
+  hitLower            Boolean   @map("hit_lower")
+  run                 BacktestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, targetDrawDate])
+  @@map("backtest_prediction")
+}

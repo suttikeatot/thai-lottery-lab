@@ -1,0 +1,20 @@
+{
+  "appName": "Thai Lottery Lab",
+  "tagline": "Statistical analysis & honest backtesting for the Thai Government Lottery.",
+  "nav": {
+    "dashboard": "Dashboard",
+    "stats": "Statistics",
+    "backtest": "Backtest",
+    "import": "Import"
+  },
+  "home": {
+    "skeletonReady": "Skeleton ready — M0 complete.",
+    "workerHealth": "Python worker /health"
+  },
+  "lang": {
+    "switchTo": "Switch to {target}",
+    "th": "ไทย",
+    "en": "English"
+  },
+  "disclaimer": "Educational/statistical tool. Lottery outcomes are random; past results do not predict future draws. Not financial advice."
+}
