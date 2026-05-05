@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { LOCALES, isLocale, getDictionary, t } from "@/lib/i18n";
@@ -41,7 +42,15 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="font-semibold tracking-tight">{t(dict, "appName")}</div>
+          <div className="flex items-center gap-6">
+            <div className="font-semibold tracking-tight">{t(dict, "appName")}</div>
+            <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+              <Link href={`/${lang}`} className="hover:text-zinc-900 dark:hover:text-zinc-100">{t(dict, "nav.dashboard")}</Link>
+              <Link href={`/${lang}/stats`} className="hover:text-zinc-900 dark:hover:text-zinc-100">{t(dict, "nav.stats")}</Link>
+              <Link href={`/${lang}/backtest`} className="hover:text-zinc-900 dark:hover:text-zinc-100">{t(dict, "nav.backtest")}</Link>
+              <Link href={`/${lang}/import`} className="hover:text-zinc-900 dark:hover:text-zinc-100">{t(dict, "nav.import")}</Link>
+            </nav>
+          </div>
           <LangSwitcher current={lang} />
         </header>
         <div className="flex-1 flex flex-col">{children}</div>
