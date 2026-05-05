@@ -18,6 +18,10 @@ export default async function ImportPage({ params }: PageProps<"/[lang]/import">
     errorRow: t(dict, "import.errorRow"),
     noFile: t(dict, "import.noFile"),
     uploadError: t(dict, "import.uploadError"),
+    exportTitle: t(dict, "import.exportTitle"),
+    exportDescription: t(dict, "import.exportDescription"),
+    exportButton: t(dict, "import.exportButton"),
+    exportNote: t(dict, "import.exportNote"),
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { LineChart, BarChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
@@ -66,20 +66,42 @@ export function NumberAnalysis({ strings }: { strings: Strings }) {
   const lineRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const fetchData = useCallback(async (num: string, ws: number) => {
-    setLoading(true);
-    const [r, g] = await Promise.all([
-      fetch(`/api/stats/rolling?number=${num}&window_size=${ws}`).then((r) => r.json()),
-      fetch(`/api/stats/gap?number=${num}`).then((r) => r.json()),
-    ]);
-    setRolling(r.points ?? []);
-    setGap(g);
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    fetchData(number, windowSize);
-  }, [number, windowSize, fetchData]);
+    const controller = new AbortController();
+
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [rollingRes, gapRes] = await Promise.all([
+          fetch(`/api/stats/rolling?number=${number}&window_size=${windowSize}`, {
+            signal: controller.signal,
+          }),
+          fetch(`/api/stats/gap?number=${number}`, {
+            signal: controller.signal,
+          }),
+        ]);
+        const [rollingJson, gapJson] = await Promise.all([
+          rollingRes.json(),
+          gapRes.json(),
+        ]);
+        setRolling(rollingJson.points ?? []);
+        setGap(gapJson);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") {
+          setRolling([]);
+          setGap(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void fetchData();
+
+    return () => controller.abort();
+  }, [number, windowSize]);
 
   useChart(
     lineRef,

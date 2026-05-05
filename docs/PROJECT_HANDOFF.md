@@ -2,7 +2,7 @@
 
 > **Purpose:** Durable project context for new coding sessions. Do not rely on chat history.  
 > **Last updated:** 2026-05-06  
-> **Status:** **M4 complete.** Rolling frequency chart + gap analysis added to stats page. Next milestone: M5 (Backtest engine).
+> **Status:** **M7 complete.** Copy/disclaimer review, SQLite export, and documentation updates have been added. Next work is bug fixing, broader automated tests, or new product scope.
 
 ---
 
@@ -240,11 +240,36 @@ For every target draw date `T`, a strategy may **only** see rows where `draw_dat
 - `messages/{en,th}.json` — `import.*` keys added in both languages.
 - Acceptance verified: importing seed twice gives inserted=10 then inserted=0; malformed rows surface in error report.
 
+### M5 — Backtest Engine ✅
+- `worker/app/backtest/leakage_guard.py` now opens SQLite read-only and returns only rows where `draw_date < as_of`.
+- Walk-forward evaluator added in `worker/app/backtest/engine.py`; it fetches actual results separately and records `as_of`, `history_count`, and `history_hash` per prediction.
+- Strategies implemented: `random_baseline`, `hot_n`, `cold_n`, `gap_weighted`.
+- FastAPI worker route `POST /backtest/run` added.
+- Next.js route `POST /api/backtest/run` added; it calls the worker and persists `BacktestRun` + `BacktestPrediction` rows via Prisma.
+- pytest suite covers leakage guard, cheating-strategy scoring, and random-baseline e2e execution.
+- Stats fetch hardening added with `AbortController` cleanup in `StatsView.tsx` and `NumberAnalysis.tsx`.
+- Verification: `pnpm test:worker` (4 passed), `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` all pass. Initial sandboxed build failed because Google Fonts could not be fetched; rerun with network access passed.
+
+### M6 — Backtest UI ✅
+- `/[lang]/backtest` now renders a usable Backtest Lab instead of a placeholder.
+- `components/BacktestLab.tsx` added with strategy selector, `k`, seed/lookback params, target window controls, optional date range, loading/error states, metrics cards, actual-vs-random bars, and prediction table.
+- `app/api/backtest/run/route.ts` now returns `predictions`, `start_date`, and `end_date` to support the UI results view while still persisting runs/predictions.
+- `messages/{en,th}.json` gained `backtest.*` keys for all visible UI strings.
+- Runtime verified under `pnpm dev`: `/en/backtest` returns 200 and `POST /api/backtest/run` returns `run_id`, metrics, predictions, start date, and end date.
+
+### M7 — Polish, Export, README ✅
+- `app/api/export/db/route.ts` added to download the current SQLite database as a raw local snapshot.
+- `components/ImportForm.tsx` now includes a database export section linked to `/api/export/db`.
+- `messages/{en,th}.json` disclaimers and export-related copy were reviewed and tightened.
+- `README.md` was rewritten to match the real current feature set and setup flow.
+- `CHANGELOG.md` was added with a concise summary of M5–M7 work.
+- Runtime verified under `pnpm dev`: `GET /api/export/db` returns a downloadable SQLite file.
+
 ---
 
 ## 14. Current Implementation Status
 
-**M4 complete.** Rolling frequency chart + gap analysis added. Stats page fully functional. Ready to start M5 (Backtest engine).
+**M7 complete.** Export, copy review, and documentation are now aligned with the working tree. Remaining work is optional polish or broader test coverage rather than a defined milestone.
 
 ---
 
@@ -283,6 +308,30 @@ Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
 - `components/ImportForm.tsx` — client component with file input and result panel.
 - `package.json` — added `papaparse`, `zod`, `@types/papaparse`.
 
+**Added in M5:**
+- `worker/app/backtest/engine.py` — walk-forward evaluator, target-date selection, metrics, and history hashing.
+- `worker/app/backtest/router.py` — FastAPI `POST /backtest/run`.
+- `worker/app/backtest/strategies/common.py` — strategy helpers for labels, frequencies, and prediction normalization.
+- `worker/app/backtest/strategies/random_baseline.py` — seeded uniform baseline.
+- `worker/app/backtest/strategies/hot_n.py` — top-k recent-frequency strategy.
+- `worker/app/backtest/strategies/cold_n.py` — bottom-k recent-frequency strategy.
+- `worker/app/backtest/strategies/gap_weighted.py` — gap/mean-gap ranking strategy.
+- `app/api/backtest/run/route.ts` — Next API route that calls the worker and persists runs/predictions.
+- `worker/tests/test_backtest.py` — engine and strategy e2e tests.
+- `components/StatsView.tsx`, `components/NumberAnalysis.tsx` — fetch cleanup with `AbortController`.
+
+**Added in M6:**
+- `components/BacktestLab.tsx` — client UI for running backtests and displaying results.
+- `app/[lang]/backtest/page.tsx` — replaced placeholder page with Backtest Lab wiring and i18n strings.
+- `messages/en.json`, `messages/th.json` — `backtest.*` translations.
+- `app/api/backtest/run/route.ts` — response expanded to include predictions and target range.
+
+**Added in M7:**
+- `app/api/export/db/route.ts` — SQLite download endpoint.
+- `README.md` — rewritten to reflect M7 state and runtime workflows.
+- `CHANGELOG.md` — milestone summary.
+- `components/ImportForm.tsx` — export/download surface in the import page.
+
 ---
 
 ## 16. Important Design Decisions and Reasons
@@ -308,8 +357,8 @@ Top-level (all under `/Users/suttikeat/Bank/thai-lottery-lab/`):
 - **next-intl was NOT used** in M0 (despite the original plan). The hand-rolled i18n is intentionally simpler. Switch to next-intl only if a feature requires it (e.g. ICU plural rules at scale).
 - **shadcn/ui not installed**. Add it when the first non-trivial component needs it.
 - Historical GLO data quality depends entirely on the user's seed CSV. The app validates but cannot fix typos in source data.
-- **No automated tests for Next.js side** — no Vitest/Playwright tests written yet. Planned for M7.
-- **No pytest for stats/compute.py** — only health + leakage_guard tests exist. Planned for M7.
+- **No automated tests for Next.js side** — export and UI runtime were smoke-tested manually, but there is still no dedicated frontend test harness.
+- **No pytest for stats/compute.py** — worker coverage now includes health, leakage guard, and backtest engine, but stats compute tests are still planned for M7.
 - **Only 10 seed rows** — all charts and statistics look sparse/extreme with prototype data. Import real GLO data to see meaningful output.
 
 ---
@@ -348,7 +397,7 @@ Bugs found during manual UI testing (2026-05-06). All fixed in the same session.
   - That alone explains the stuck "Loading…" on stats (rolling/gap fetches hung).
   - It also explains the navigation freeze: in-flight fetches from a previous stats visit are not aborted on unmount, so each visit leaks 2 hung connections; after ~3 visits the browser hits its 6-connections-per-origin cap and any new fetch (RSC, HMR) blocks → app appears frozen.
 - **Fix (operational):** `kill -CONT` then `kill -9` the suspended PIDs to free port 8001, then restart `pnpm dev`. A stopped uvicorn cannot receive SIGTERM until resumed.
-- **Code-side hardening (recommended, not yet applied):** Add `AbortController` to `StatsView.tsx` and `NumberAnalysis.tsx` so unmount/dep-change cancels pending fetches. Without this, any future worker hang reproduces the same nav-freeze cascade.
+- **Code-side hardening:** `AbortController` cleanup has been added to `StatsView.tsx` and `NumberAnalysis.tsx` so unmount/dep-change cancels pending fetches.
 - **Diagnosis recipe (for future debugging):**
   ```bash
   lsof -i :8001 -P -n          # is something bound?
@@ -365,31 +414,29 @@ Bugs found during manual UI testing (2026-05-06). All fixed in the same session.
 - [x] **M2:** Dashboard (summary cards, latest draws table, nav links, language toggle) — done.
 - [x] **M3:** Statistics page (window picker, frequency table, heatmap, deviation chart, chi-square) — done.
 - [x] **M4:** Rolling frequency chart, gap analysis — done.
-- [ ] **M5:** Backtest engine (leakage guard, walk-forward, strategies, DB persistence, unit tests).
-- [ ] **M6:** Backtest UI (form, run/progress, results page with metrics and lift chart).
-- [ ] **M7:** Thai translation review, disclaimers, DB export, README.
+- [x] **M5:** Backtest engine (leakage guard, walk-forward, strategies, DB persistence, unit tests) — done.
+- [x] **M6:** Backtest UI (form, run/progress, results page with metrics and lift chart) — done.
+- [x] **M7:** Thai translation review, disclaimers, DB export, README — done.
 
 ---
 
 ## 19. Next Recommended Milestone
 
-**M5 — Backtest Engine**
+**Post-M7 Priorities**
 
-Estimated effort: 3–4 hours.
+Estimated effort: variable.
 
 Goals:
-- Implement `leakage_guard.get_history(as_of)` — opens SQLite read-only, returns `draw_date < as_of`.
-- Walk-forward evaluator in `engine.py` — iterates target dates oldest→newest, calls `get_history(T)` per step.
-- Strategies: `random_baseline`, `hot_n`, `cold_n`, `gap_weighted` — each in `worker/app/backtest/strategies/`.
-- Persist results to `BacktestRun` + `BacktestPrediction` via Prisma (Next.js API route, not the worker).
-- pytest suite: leakage guard returns no future rows; cheating strategy scores correctly; at least one strategy e2e test.
-- API route `POST /api/backtest/run` — accepts `{ strategy, params, window_spec }`, triggers engine, returns `run_id`.
+- Add frontend automated tests for import, stats, backtest, and export flows.
+- Fix bugs found from larger real-data imports and longer browser sessions.
+- Decide whether to extend analytics scope or keep the app frozen as an MVP.
 
 ### Important reminders for next agent
 
 - **ECharts pattern** — always call `echarts.getInstanceByDom(el)` and dispose before `echarts.init()`. See BUG-002 in §17b.
 - **Never name a state variable `window`** — it shadows the browser global. See BUG-001 in §17b.
-- **If "Loading…" hangs and/or nav freezes after a few page switches, check if the worker is suspended** (`ps -p <PID> -o stat` → `T`). See BUG-004. Adding `AbortController` to fetch effects in `StatsView`/`NumberAnalysis` is still pending.
+- **If "Loading…" hangs and/or nav freezes after a few page switches, check if the worker is suspended** (`ps -p <PID> -o stat` → `T`). See BUG-004.
+- **Backtest audit data** — the worker returns `as_of`, `history_count`, and `history_hash` per prediction. Current Prisma schema does not have dedicated columns for these fields, so the Next API persists them inside `BacktestRun.metrics_json.audit`.
 - **Read `node_modules/next/dist/docs/` before any Next-specific work.**
 - **Prisma 7** datasource URL is in `prisma.config.ts`, not the schema.
 - **i18n keys** — every new visible string belongs in both `messages/en.json` and `messages/th.json`.
@@ -401,53 +448,24 @@ Goals:
 
 ### Context
 - Project root: `/Users/suttikeat/Bank/thai-lottery-lab/`
-- Branch: `m5/backtest-engine` (forked from `main` at M4 completion)
+- Branch: `m5/backtest-engine`
 - Node v25.9.0 | Python 3.14.4 | uv 0.11.7 | pnpm 10.33.3
-- **M0–M4 complete on `main`.** Start M5 on `m5/backtest-engine` branch.
+- **M0–M7 complete.** Continue on `m5/backtest-engine` for bug fixes or open a new branch for new scope.
 
 ### Sanity check before coding
 ```bash
 cd /Users/suttikeat/Bank/thai-lottery-lab
 pnpm install              # idempotent
-pnpm exec next build      # must succeed — currently 10 routes
-pnpm test:worker          # must show 2 passed
+pnpm exec next build      # must succeed — currently 11 routes including /api/backtest/run
+pnpm test:worker          # must show 4 passed
 pnpm dev                  # http://localhost:3000 + worker on :8001
 ```
 
-### M5 — Backtest Engine (step-by-step)
+### Post-M7 Suggestions
 
-1. **Implement `leakage_guard.get_history(as_of)`** in `worker/app/backtest/leakage_guard.py`:
-   - Remove the `NotImplementedError` stub.
-   - Open SQLite read-only, return `SELECT * FROM draw WHERE draw_date < as_of ORDER BY draw_date ASC` as a DataFrame.
-   - Include `draw_date`, `two_upper`, `two_lower` columns minimum.
-
-2. **Strategies** — create `worker/app/backtest/strategies/` with `__init__.py` and one file per strategy. Each strategy is a callable `(history: DataFrame, k: int, params: dict) -> list[str]` returning up to `k` two-digit predictions.
-   - `random_baseline.py` — uniform sample (use `params["seed"]`).
-   - `hot_n.py` — top-k by frequency in last `params["lookback"]` draws.
-   - `cold_n.py` — bottom-k by frequency in last `params["lookback"]` draws.
-   - `gap_weighted.py` — rank by (current_gap / mean_gap); higher = more overdue.
-
-3. **Walk-forward engine** in `worker/app/backtest/engine.py`:
-   - Accept: `strategy_fn`, `params`, list of target `draw_date`s, `k` (predictions per draw).
-   - For each target date T: call `get_history(T)` → pass to strategy → record prediction.
-   - Fetch actual result separately (never passed to strategy).
-   - Return list of `{target_date, predicted, actual_upper, actual_lower, hit_upper, hit_lower}`.
-
-4. **pytest suite** in `worker/tests/test_backtest.py`:
-   - `test_leakage_guard_no_future_rows` — assert all returned rows have `draw_date < as_of`.
-   - `test_cheating_strategy_scores_100pct` — strategy that returns the actual answer always hits.
-   - `test_random_baseline_runs_e2e` — full walk-forward with random baseline completes without error.
-
-5. **API route** `app/api/backtest/run/route.ts` — `POST { strategy_key, params, window_spec, k }`:
-   - Call Python worker `POST /backtest/run`.
-   - Worker returns metrics JSON; Next.js persists to `BacktestRun` + `BacktestPrediction` via Prisma.
-   - Return `{ run_id, metrics }`.
-
-6. **Python worker route** `POST /backtest/run` in `worker/app/backtest/router.py`.
-
-7. **Tests** — small fixture CSV + Vitest (or a Next route test) that imports it twice and asserts inserted=N then 0.
-
-8. **Update handoff doc** §13 Completed Milestones, §15 Files, §18 Pending, §19 Next Milestone (→ M2 Dashboard).
+1. Add Vitest or Playwright coverage for the export path and the main interactive pages.
+2. Re-run the app with a larger real historical dataset and inspect statistical outputs for edge-case bugs.
+3. If the product scope stays local-first, keep the SQLite export path and avoid adding cloud/auth complexity.
 
 ### Important reminders for the next agent
 
@@ -455,4 +473,4 @@ pnpm dev                  # http://localhost:3000 + worker on :8001
 - **Prisma 7** datasource URL is in `prisma.config.ts`, not the schema. Don't try to add `url` back to `schema.prisma`.
 - **Default to no comments** in code unless the *why* is non-obvious.
 - **i18n keys** — every new visible string belongs in both `messages/en.json` and `messages/th.json`. Reach for the `t(dict, "key")` helper in `lib/i18n.ts`.
-- After M1 acceptance, commit with a clear message and update §13–§19 of this handoff before stopping.
+- After future work, update §13–§19 of this handoff before stopping.

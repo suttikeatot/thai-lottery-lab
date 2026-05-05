@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { HeatmapChart, BarChart } from "echarts/charts";
 import {
@@ -110,24 +110,34 @@ export function StatsView({ strings }: { strings: Strings }) {
   const heatmapRef = useRef<HTMLDivElement>(null);
   const devChartRef = useRef<HTMLDivElement>(null);
 
-  const fetchStats = useCallback(async (win: string, nVal: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/stats?window=${win}&n=${nVal}`);
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchStats() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/stats?window=${selectedWindow}&n=${n}`, {
+          signal: controller.signal,
+        });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Unknown error");
-      setData(json);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
+        setData(json);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") {
+          setError((e as Error).message);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
     }
-  }, []);
 
-  useEffect(() => {
-    fetchStats(selectedWindow, n);
-  }, [selectedWindow, n, fetchStats]);
+    void fetchStats();
+
+    return () => controller.abort();
+  }, [selectedWindow, n]);
 
   useChart(
     heatmapRef,

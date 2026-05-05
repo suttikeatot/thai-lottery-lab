@@ -22,6 +22,10 @@ type Strings = {
   errorRow: string;
   noFile: string;
   uploadError: string;
+  exportTitle: string;
+  exportDescription: string;
+  exportButton: string;
+  exportNote: string;
 };
 
 export function ImportForm({ strings }: { strings: Strings }) {
@@ -120,6 +124,28 @@ export function ImportForm({ strings }: { strings: Strings }) {
           </ul>
         </div>
       )}
+
+      <section className="rounded-md border border-zinc-200 px-4 py-4 dark:border-zinc-800">
+        <h2 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          {strings.exportTitle}
+        </h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          {strings.exportDescription}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {/* File download should hit the route directly instead of client navigation. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/export/db"
+            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-500"
+          >
+            {strings.exportButton}
+          </a>
+          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+            {strings.exportNote}
+          </span>
+        </div>
+      </section>
     </form>
   );
 }
