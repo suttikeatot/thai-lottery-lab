@@ -45,8 +45,58 @@ export type ValidateResult = {
   errors: RowError[];
 };
 
+type RawInputRow = Record<string, unknown>;
+
+function asTrimmedString(value: unknown): string {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function normalizeListValue(value: unknown): string {
+  if (value == null || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value.map((item) => asTrimmedString(item)).filter(Boolean).join(",");
+  }
+
+  const raw = asTrimmedString(value);
+  if (!raw) return "";
+
+  if (THREE_DIGITS_LIST.test(raw)) return raw;
+
+  try {
+    const jsonReady = raw.replace(/'/g, '"');
+    const parsed = JSON.parse(jsonReady);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => asTrimmedString(item)).filter(Boolean).join(",");
+    }
+  } catch {
+    // Fall through to plain-string handling below.
+  }
+
+  return raw.replace(/[\[\]'"]/g, "").replace(/\s+/g, "");
+}
+
+function normalizeRawRow(raw: RawInputRow): Record<string, string> {
+  const drawDate = asTrimmedString(raw.draw_date ?? raw.date);
+  const firstPrize = asTrimmedString(raw.first_prize ?? raw.prize_1st);
+  const twoLower = asTrimmedString(raw.two_lower ?? raw.prize_2digits);
+  const twoUpper = asTrimmedString(raw.two_upper);
+  const threeFront = normalizeListValue(raw.three_front ?? raw.prize_pre_3digit);
+  const threeBack = normalizeListValue(raw.three_back ?? raw.prize_sub_3digits);
+
+  return {
+    draw_date: drawDate,
+    first_prize: firstPrize.padStart(6, "0"),
+    two_lower: twoLower.padStart(2, "0"),
+    two_upper: twoUpper ? twoUpper.padStart(2, "0") : "",
+    three_front: threeFront,
+    three_back: threeBack,
+  };
+}
+
 export function validateRows(
-  rawRows: Record<string, string>[]
+  rawRows: RawInputRow[]
 ): ValidateResult {
   const ok: ParsedRow[] = [];
   const errors: RowError[] = [];
@@ -54,7 +104,7 @@ export function validateRows(
 
   for (let i = 0; i < rawRows.length; i++) {
     const rowNum = i + 2; // 1-based, row 1 is header
-    const raw = rawRows[i];
+    const raw = normalizeRawRow(rawRows[i]);
 
     const parsed = RawRowSchema.safeParse(raw);
     if (!parsed.success) {

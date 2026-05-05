@@ -13,6 +13,7 @@ export default defineConfig({
     include: [
       "components/**/*.test.tsx",
       "app/**/*.test.ts",
+      "lib/**/*.test.ts",
     ],
   },
 });

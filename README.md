@@ -56,7 +56,15 @@ Optional fields:
 - `three_front`
 - `three_back`
 
-See [docs/csv_schema.md](/Users/suttikeat/Bank/thai-lottery-lab/docs/csv_schema.md) for the canonical schema and [data/seed/glo_results_seed.csv](/Users/suttikeat/Bank/thai-lottery-lab/data/seed/glo_results_seed.csv) for a sample file.
+The importer also accepts the historical `lotto.csv` style schema:
+- `date` instead of `draw_date`
+- `prize_1st` instead of `first_prize`
+- `prize_2digits` instead of `two_lower`
+- `prize_pre_3digit` and `prize_sub_3digits` for front/back 3-digit lists
+
+List-style values such as `['290', '742']` are normalized during import.
+
+See [docs/csv_schema.md](/Users/suttikeat/Bank/thai-lottery-lab/docs/csv_schema.md) for the canonical schema, [data/seed/glo_results_seed.csv](/Users/suttikeat/Bank/thai-lottery-lab/data/seed/glo_results_seed.csv) for the canonical sample, and `data/seed/lotto.csv` for the historical alternate format used in local testing.
 
 ## App surfaces
 
@@ -88,6 +96,7 @@ The export is a raw SQLite snapshot from the local machine. It is meant for back
 The current working tree has been verified with:
 - `pnpm lint`
 - `pnpm exec tsc --noEmit`
+- `pnpm test:web`
 - `pnpm test:worker`
 - `pnpm build`
 
@@ -102,5 +111,5 @@ Runtime smoke checks have also been exercised against `pnpm dev`, including `POS
 ## Notes
 
 - Next.js `16` and Prisma `7` both have breaking changes compared with older defaults; this repo already follows those conventions.
-- There are still no automated frontend tests. Worker tests currently cover health, leakage guard, and backtest engine paths.
+- Frontend automated coverage currently uses Vitest for import, backtest, export, and importer normalization paths. Worker tests cover health, leakage guard, and backtest engine paths.
 - The app is educational. Lottery outcomes are random, and nothing here should be interpreted as gambling advice.
